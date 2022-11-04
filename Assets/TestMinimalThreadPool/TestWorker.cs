@@ -6,36 +6,45 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-public class TestWorker
-{
+public class TestWorker {
+
+    private const int JOB_COUNT = 16;
+    private const int SLEEP_DURATION = 100;
+
     // A Test behaves as an ordinary method
     [Test]
-    public void TestWorkerSimplePasses()
-    {
-        var completed = false;
+    public void TestAllJobsCompleted() {
         var pool = new MinimalThreadPool(8);
         try {
-            var num_works = 16;
-            var events = new AutoResetEvent[num_works];
-            for (var i= 0; i <events.Length; i++) {
-                var ev = new AutoResetEvent(false);
-                events[i] = ev;
+            var num_works = JOB_COUNT;
+            for (var i = 0; i < num_works; i++) {
                 pool.QueueUserWorkItem<int>(i => {
-                    Thread.Sleep(1000);
-                    ev.Set();
+                    Thread.Sleep(SLEEP_DURATION);
+                    Interlocked.Decrement(ref num_works);
                 }, default);
             }
 
-            for (var i = 0; i < events.Length; i++)
-                if (!events[i].WaitOne(0))
-                    Thread.Sleep(0);
-
-            completed = true;
-        }finally {
+            Thread.Sleep(3 * SLEEP_DURATION);
+            Assert.AreEqual(0, num_works);
+        } finally {
             pool.Dispose();
         }
 
-        Assert.IsTrue(completed);
+    }    // A Test behaves as an ordinary method
+    [Test]
+    public void TestDisposed() {
+        var num_works = JOB_COUNT;
+        using (var pool = new MinimalThreadPool(8)) {
+            pool.UnhandledException += (obj, e) 
+                => Assert.AreEqual(typeof(ThreadInterruptedException), e.Exception.GetType());
 
+            for (var i = 0; i < num_works; i++) {
+                pool.QueueUserWorkItem<int>(i => {
+                    Thread.Sleep(SLEEP_DURATION);
+                    Interlocked.Decrement(ref num_works);
+                }, default);
+            }
+        }
+        Assert.AreEqual(JOB_COUNT, num_works);
     }
 }
