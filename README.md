@@ -1,7 +1,7 @@
 # Minimal ThreadPool for Unity
 
 ## Features
-- Minimal, Scoped and Object-oriented
+- Minimal, Scoped
 - Independent from System's [ThreadPool](https://learn.microsoft.com/ja-jp/dotnet/api/system.threading.threadpoo)
 
 ## Install
